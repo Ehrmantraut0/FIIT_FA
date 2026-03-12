@@ -103,21 +103,31 @@ public abstract class BinarySearchTreeBase<TKey, TValue, TNode>(IComparer<TKey>?
     
     protected virtual void RemoveNode(TNode node)
     {
-        //throw new NotImplementedException("Implement standard BST delete logic using Transplant helper");
-        TNode? transplonted_node;
-        if (node.Left == null)
+        if (Count == 1)
+        {
+            Root = null;
+            return;
+        }
+
+        TNode balancingStart;
+        if (node.Left == null && node.Right != null)
         {
             this.Transplant(node, node.Right);
-            transplonted_node = node.Right;
+            balancingStart = node.Right;
         }
-        else if (node.Right == null)
+        else if (node.Right == null && node.Left != null)
         {
             this.Transplant(node, node.Left);
-            transplonted_node = node.Left;
+            balancingStart = node.Left;
+        }
+        else if (node.Left == null && node.Right == null)
+        {
+            balancingStart = node.Parent!;
+            this.Transplant(node, null);
         }
         else
         {
-            TNode minRight = node.Right;
+            TNode minRight = node.Right!;
             while (minRight.Left != null)
             {
                 minRight = minRight.Left;
@@ -125,19 +135,20 @@ public abstract class BinarySearchTreeBase<TKey, TValue, TNode>(IComparer<TKey>?
 
             if (minRight.Parent != node)
             {
+
                 this.Transplant(minRight, minRight.Right);
                 minRight.Right = node.Right;
-                node.Right.Parent = minRight;
+                node.Right!.Parent = minRight;
             }
 
+            balancingStart = minRight.Parent!;
             this.Transplant(node, minRight);
-            transplonted_node = minRight;
 
             minRight.Left = node.Left;
-            minRight.Left.Parent = minRight;
+            minRight.Left!.Parent = minRight;
         }
 
-        this.OnNodeRemoved(transplonted_node?.Parent, transplonted_node);
+        this.OnNodeRemoved(balancingStart, null);
 
 
     }
