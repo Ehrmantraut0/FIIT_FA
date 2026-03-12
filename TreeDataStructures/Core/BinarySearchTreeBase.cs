@@ -1,5 +1,6 @@
 ﻿using Microsoft.VisualBasic;
 using System.Collections;
+using System.Data;
 using System.Diagnostics.CodeAnalysis;
 using TreeDataStructures.Interfaces;
 
@@ -31,7 +32,7 @@ public abstract class BinarySearchTreeBase<TKey, TValue, TNode>(IComparer<TKey>?
         }
 
     }
-    
+
     public ICollection<TValue> Values {
         get
         {
@@ -45,8 +46,8 @@ public abstract class BinarySearchTreeBase<TKey, TValue, TNode>(IComparer<TKey>?
             return Values;
         }
     }
-    
-    
+
+
     public virtual void Add(TKey key, TValue value)
     {
         //throw new NotImplementedException(
@@ -55,31 +56,37 @@ public abstract class BinarySearchTreeBase<TKey, TValue, TNode>(IComparer<TKey>?
         if (this.Root == null)
         {
             this.Root = newNode;
-            return;
-        }
-
-        TNode? temp = this.Root;
-        TNode parent = this.Root;
-        int cmp = 0;
-        while (temp != null)
-        {
-            parent = temp;
-            cmp = Comparer.Compare(key, temp.Key);
-            temp = cmp <= 0 ? temp.Left : temp.Right;
-        }
-
-        if (cmp <= 0)
-        {
-            parent.Left = newNode;
         }
         else
         {
-            parent.Right = newNode;
+            TNode? temp = this.Root;
+            TNode parent = this.Root;
+            int cmp = 0;
+            while (temp != null)
+            {
+                parent = temp;
+                cmp = Comparer.Compare(key, temp.Key);
+                if (cmp == 0)
+                {
+                    parent.Value = value;
+                    return;
+                }
+                temp = cmp < 0 ? temp.Left : temp.Right;
+            }
+
+            if (cmp < 0)
+            {
+                parent.Left = newNode;
+            }
+            else 
+            {
+                parent.Right = newNode;
+            }
+           newNode.Parent = parent;
         }
-        newNode.Parent = parent;
+
         this.Count++;
         this.OnNodeAdded(newNode);
-
     }
 
     
@@ -263,56 +270,366 @@ public abstract class BinarySearchTreeBase<TKey, TValue, TNode>(IComparer<TKey>?
     }
     #endregion
     
-    public IEnumerable<TreeEntry<TKey, TValue>>  InOrder() => InOrderTraversal(Root);
-    
-    private IEnumerable<TreeEntry<TKey, TValue>>  InOrderTraversal(TNode? node)
-    {
-        if (node == null) {  yield break; }
-        throw new NotImplementedException();
-    }
-    
-    public IEnumerable<TreeEntry<TKey, TValue>>  PreOrder() => new TreeIterator(TraversalStrategy.PreOrder);
-    public IEnumerable<TreeEntry<TKey, TValue>>  PostOrder() => new TreeIterator(TraversalStrategy.PostOrder);
-    public IEnumerable<TreeEntry<TKey, TValue>>  InOrderReverse() => new TreeIterator(TraversalStrategy.InOrderReverse);
-    public IEnumerable<TreeEntry<TKey, TValue>>  PreOrderReverse() => new TreeIterator(TraversalStrategy.PreOrderReverse);
-    public IEnumerable<TreeEntry<TKey, TValue>>  PostOrderReverse() => new TreeIterator(TraversalStrategy.PostOrderReverse);
+    public IEnumerable<TreeEntry<TKey, TValue>>  InOrder() => new TreeIterator(TraversalStrategy.InOrder, Root);
+    //private IEnumerable<TreeEntry<TKey, TValue>> InOrderTraversal(TNode? node)
+    //     => new TreeIterator(TraversalStrategy.InOrder, node);
+
+    public IEnumerable<TreeEntry<TKey, TValue>>  PreOrder() => new TreeIterator(TraversalStrategy.PreOrder, Root);
+    public IEnumerable<TreeEntry<TKey, TValue>>  PostOrder() => new TreeIterator(TraversalStrategy.PostOrder, Root);
+    public IEnumerable<TreeEntry<TKey, TValue>>  InOrderReverse() => new TreeIterator(TraversalStrategy.InOrderReverse, Root);
+    public IEnumerable<TreeEntry<TKey, TValue>>  PreOrderReverse() => new TreeIterator(TraversalStrategy.PreOrderReverse, Root);
+    public IEnumerable<TreeEntry<TKey, TValue>>  PostOrderReverse() => new TreeIterator(TraversalStrategy.PostOrderReverse, Root);
     
     /// <summary>
     /// Внутренний класс-итератор. 
     /// Реализует паттерн Iterator вручную, без yield return (ban).
     /// </summary>
-    private struct TreeIterator : 
+    private struct TreeIterator: 
         IEnumerable<TreeEntry<TKey, TValue>>,
         IEnumerator<TreeEntry<TKey, TValue>>
     {
-        public TreeIterator(TraversalStrategy strategy)
+        public TreeIterator(TraversalStrategy strategy, TNode? root)
         {
             this._strategy = strategy;
+            this._root = root;
+            this._current = null;
+            this._depth = 0;
+            this._prevNode = null;
         }
 
         // probably add something here
-        private TreeEntry<TKey, TValue> _current;
+        private TNode ?_current;
+        private int _depth;
         private TraversalStrategy _strategy;
-        
+        private TNode ?_prevNode;
+        private TNode ?_root;
+
+
         public IEnumerator<TreeEntry<TKey, TValue>> GetEnumerator() => this;
         IEnumerator IEnumerable.GetEnumerator() => this;
-        
-        public TreeEntry<TKey, TValue> Current => this._current;
+
+        public TreeEntry<TKey, TValue> Current 
+        {
+            get
+            {
+                if (_current == null)
+                    throw new InvalidOperationException("Enumerator is not started or has finished");
+
+                return new TreeEntry<TKey, TValue>(_current.Key, _current.Value, _depth);
+            }
+        }
         object IEnumerator.Current => Current;
         
         
         public bool MoveNext()
         {
-            if (_strategy == TraversalStrategy.InOrder)
+            if (this._root == null)
             {
-                throw new NotImplementedException();
+                return false;
             }
-            throw new NotImplementedException("Strategy not implemented");
-        }
+            bool res = true;
+
+            switch (_strategy)
+            {
+                case (TraversalStrategy.InOrder):
+                    res = MoveInOrder();
+                    break;
+                case (TraversalStrategy.PreOrder):
+                    res = MovePreOrder();
+                    break;
+                case (TraversalStrategy.PostOrder):
+                    res = MovePostOrder();
+                    break;
+                case (TraversalStrategy.InOrderReverse):
+                    res = MoveInOrderReverse();
+                    break;
+                case (TraversalStrategy.PreOrderReverse):
+                    res = MovePreOrderReverse();
+                    break;
+                case (TraversalStrategy.PostOrderReverse):
+                    res = MovePostOrderReverse();
+                    break;
+            }
+
+            return res;
         
+        }
+
+        public bool MovePostOrderReverse()
+        {
+            if (_current == null)
+            {
+                _current = this._root;
+                _depth++;
+                return true;
+            }
+
+            while ((_current.Left == null && _current.Right == null) || ((_current.Right == _prevNode) && (_current.Left == null)) || (_current.Left == _prevNode))
+            {
+                if (_current.Parent == null)
+                {
+                    _current = null;
+                    return false;
+                }
+                _depth--;
+                _prevNode = _current;
+                _current = _current.Parent;
+            }
+
+            if ((_current.Right != null && _current.Parent == _prevNode) || _prevNode == null)
+            {
+               _prevNode = _current;
+                _depth++;
+                _current = _current.Right;
+            }
+            else
+            {
+                _prevNode = _current;
+                _depth++;
+                _current = _current.Left;
+            }
+
+            return true;
+        }
+
+        public bool MovePreOrderReverse()
+        {
+            if (_current == null)
+            {
+                _depth++;
+                _current = this._root!;
+            }
+
+
+            if (_prevNode != null)
+            {
+                if (_current.Parent == null)
+                {
+                    _current = null;
+                    return false;
+                }
+                _depth--;
+                _prevNode = _current;
+                _current = _current.Parent!;
+                if (_current.Left == _prevNode || (_current.Left == null && _current.Right == _prevNode))
+                {
+                    return true;
+                }
+            }
+
+
+
+            while (!(_current.Left == null && _current.Right == null))
+            {
+                while ((_current.Parent == _prevNode || _prevNode == null) && _current.Right != null)
+                {
+                    _depth++;
+                    _prevNode = _current;
+                    _current = _current.Right;
+                }
+
+                while (_current.Left != null && (_current.Right == null || _prevNode == _current.Right))
+                {
+                    _depth++;
+                    _prevNode = _current;
+                    _current = _current.Left;
+                }
+            }
+
+            return true;
+        }
+
+        public bool MoveInOrderReverse()
+        {
+
+            if (_current == null)
+            {
+                _depth++;
+                _current = this._root!;
+                if (_current.Right == null)
+                {
+                    return true;
+                }
+            }
+
+
+
+            while ((_current.Left == null && _current.Right == null) || (_current.Right == _prevNode && _current.Left == null) || (_current.Left == _prevNode))
+            {
+                if (_current.Parent == null)
+                {
+                    _current = null;
+                    return false;
+                }
+                _depth--;
+                _prevNode = _current;
+                _current = _current.Parent!;
+                if (_prevNode == _current.Right)
+                {
+                    return true;
+                }
+            }
+
+
+            if (_current.Left != null && (_current.Right == null || _prevNode == _current.Right))
+            {
+                _depth++;
+                _prevNode = _current;
+                _current = _current.Left;
+            }
+
+            while ((_current.Parent == _prevNode || _prevNode == null) && _current.Right != null)
+            {
+                _depth++;
+                _prevNode = _current;
+                _current = _current.Right;
+            }
+
+            return true;
+        }
+
+
+        public bool MovePostOrder()
+        {
+            if (_current == null)
+            {
+                _depth++;
+                _current = this._root!;
+            }
+
+
+            if (_prevNode != null)
+            {
+                if (_current.Parent == null)
+                {
+                    _current = null;
+                    return false;
+                }
+                _depth--;
+                _prevNode = _current;
+                _current = _current.Parent!;
+                if (_current.Right == _prevNode || (_current.Right == null && _current.Left == _prevNode))
+                { 
+                    return true;
+                }
+            }
+
+
+
+            while (!(_current.Left == null && _current.Right == null))
+            {
+                while ((_current.Parent == _prevNode || _prevNode == null) && _current.Left != null)
+                {
+                    _depth++;
+                    _prevNode = _current;
+                    _current = _current.Left;
+                }
+
+                while (_current.Right != null && (_current.Left == null || _prevNode == _current.Left))
+                {
+                    _depth++;
+                    _prevNode = _current;
+                    _current = _current.Right;
+                }
+
+            }
+
+            return true;
+        }
+
+        public bool MoveInOrder()
+        {
+            if (_current == null)
+            {
+                _depth++;
+                _current = this._root!;
+                if (_current.Left == null)
+                {
+                    return true;
+                }
+            }
+
+
+
+            while ((_current.Left == null && _current.Right == null) || (_current.Left == _prevNode && _current.Right == null) || (_current.Right == _prevNode))
+            {
+                if (_current.Parent == null && _prevNode != _current)
+                {
+                    _current = null;
+                    return false;
+                }
+                _depth--;
+                _prevNode = _current;
+                _current = _current.Parent!;
+                if (_prevNode == _current.Left)
+                {
+                    return true;
+                }
+            }
+
+
+            if (_current.Right != null && (_current.Left == null || _prevNode == _current.Left))
+            {
+                _depth++;
+                _prevNode = _current;
+                _current = _current.Right;
+            }
+
+            while ((_current.Parent == _prevNode || _prevNode == null) && _current.Left != null)
+            {
+                _depth++;
+                _prevNode = _current;
+                _current = _current.Left;
+            }
+            return true;
+        }
+
+        public bool MovePreOrder()
+        {
+            if (_current == null)
+            {
+                _current = this._root;
+                _depth++;
+                return true;
+            }
+
+            while ((_current.Left == null && _current.Right == null) || ((_current.Left == _prevNode) && (_current.Right == null)) || (_current.Right == _prevNode))
+            {
+                if (_current.Parent == null)
+                {
+                    _current = null;
+                    return false;
+                }
+                _depth--;
+                _prevNode = _current;
+                _current = _current.Parent;
+            }
+
+            if ((_current.Left != null && _current.Parent == _prevNode) || _prevNode == null)
+            {
+                _prevNode = _current;
+                _current = _current.Left;
+                _depth++;
+            }
+            else
+            {
+                _prevNode = _current;
+                _current = _current.Right;
+                _depth++;
+            }
+
+            return true;
+
+        }
+
         public void Reset()
         {
-            throw new NotImplementedException();
+            if (_root != null)
+            {
+                _current = null;
+                _prevNode = null;
+                _depth = 0;
+            }
         }
 
         
@@ -324,18 +641,25 @@ public abstract class BinarySearchTreeBase<TKey, TValue, TNode>(IComparer<TKey>?
     
     
     private enum TraversalStrategy { InOrder, PreOrder, PostOrder, InOrderReverse, PreOrderReverse, PostOrderReverse }
-    
-    public IEnumerator<KeyValuePair<TKey, TValue>> GetEnumerator()
-    {
-        throw new NotImplementedException();
-    }
-    
+
+    public IEnumerator<KeyValuePair<TKey, TValue>> GetEnumerator() => InOrder().Select(e => new KeyValuePair<TKey, TValue>(e.Key, e.Value)).GetEnumerator();
     IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 
 
     public void Add(KeyValuePair<TKey, TValue> item) => Add(item.Key, item.Value);
     public void Clear() { Root = null; Count = 0; }
     public bool Contains(KeyValuePair<TKey, TValue> item) => ContainsKey(item.Key);
-    public void CopyTo(KeyValuePair<TKey, TValue>[] array, int arrayIndex) => throw new NotImplementedException();
+    public void CopyTo(KeyValuePair<TKey, TValue>[] array, int arrayIndex)
+    {
+        if (array.Length - arrayIndex < Count)
+        {
+            throw new ArgumentException("Not enough capacity");
+        }
+
+        foreach (TreeEntry<TKey, TValue> item in InOrder())
+        {
+            array[arrayIndex++] = new KeyValuePair<TKey, TValue>(item.Key, item.Value);
+        }
+    }
     public bool Remove(KeyValuePair<TKey, TValue> item) => Remove(item.Key);
 }
