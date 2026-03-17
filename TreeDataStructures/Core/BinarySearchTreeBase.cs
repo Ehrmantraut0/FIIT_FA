@@ -150,7 +150,6 @@ public abstract class BinarySearchTreeBase<TKey, TValue, TNode>(IComparer<TKey>?
 
         this.OnNodeRemoved(balancingStart, null);
 
-
     }
 
     public virtual bool ContainsKey(TKey key) => FindNode(key) != null;
@@ -196,7 +195,7 @@ public abstract class BinarySearchTreeBase<TKey, TValue, TNode>(IComparer<TKey>?
     protected abstract TNode CreateNode(TKey key, TValue value);
     
     
-    protected TNode? FindNode(TKey key)
+    protected virtual TNode? FindNode(TKey key)
     {
         TNode? current = Root;
         while (current != null)
@@ -218,9 +217,12 @@ public abstract class BinarySearchTreeBase<TKey, TValue, TNode>(IComparer<TKey>?
         TNode y = x.Right;
 
         Transplant(x, y);
+
         x.Parent = y;
         x.Right = y.Left;
+        x.Right?.Parent = x;
         y.Left = x;
+
     }
 
     protected void RotateRight(TNode y)
@@ -235,6 +237,7 @@ public abstract class BinarySearchTreeBase<TKey, TValue, TNode>(IComparer<TKey>?
         Transplant(y, x);
         y.Parent = x;
         y.Left = x.Right;
+        y.Left?.Parent = y;
         x.Right = y;
     }
     
@@ -370,12 +373,16 @@ public abstract class BinarySearchTreeBase<TKey, TValue, TNode>(IComparer<TKey>?
         {
             if (_current == null)
             {
-                _current = this._root;
+                _current = this._root!;
                 _depth++;
+                if (_current.Left == null && _current.Right == null)
+                {
+                    _prevNode = _current;
+                }
                 return true;
             }
 
-            while ((_current.Left == null && _current.Right == null) || ((_current.Right == _prevNode) && (_current.Left == null)) || (_current.Left == _prevNode))
+            while (_prevNode != null && ((_current.Left == null && _current.Right == null) || ((_current.Right == _prevNode) && (_current.Left == null)) || (_current.Left == _prevNode)))
             {
                 if (_current.Parent == null)
                 {
@@ -409,6 +416,11 @@ public abstract class BinarySearchTreeBase<TKey, TValue, TNode>(IComparer<TKey>?
             {
                 _depth++;
                 _current = this._root!;
+                if (_current.Right == null && _current.Left == null)
+                {
+                    _prevNode = _current;
+                    return true;
+                }
             }
 
 
@@ -459,13 +471,14 @@ public abstract class BinarySearchTreeBase<TKey, TValue, TNode>(IComparer<TKey>?
                 _current = this._root!;
                 if (_current.Right == null)
                 {
+                    _prevNode = _current;
                     return true;
                 }
             }
 
 
 
-            while ((_current.Left == null && _current.Right == null) || (_current.Right == _prevNode && _current.Left == null) || (_current.Left == _prevNode))
+            while (_prevNode != null && ((_current.Left == null && _current.Right == null) || (_current.Right == _prevNode && _current.Left == null) || (_current.Left == _prevNode)))
             {
                 if (_current.Parent == null)
                 {
@@ -482,7 +495,7 @@ public abstract class BinarySearchTreeBase<TKey, TValue, TNode>(IComparer<TKey>?
             }
 
 
-            if (_current.Left != null && (_current.Right == null || _prevNode == _current.Right))
+            if (_current.Left != null && (_current.Right == null || _prevNode == _current.Right) && _prevNode != null)
             {
                 _depth++;
                 _prevNode = _current;
@@ -506,6 +519,11 @@ public abstract class BinarySearchTreeBase<TKey, TValue, TNode>(IComparer<TKey>?
             {
                 _depth++;
                 _current = this._root!;
+                if (_current.Left == null && _current.Right == null)
+                {
+                    _prevNode = _current;
+                    return true;
+                }
             }
 
 
@@ -556,24 +574,28 @@ public abstract class BinarySearchTreeBase<TKey, TValue, TNode>(IComparer<TKey>?
                 _current = this._root!;
                 if (_current.Left == null)
                 {
+                    _prevNode = _current;
                     return true;
                 }
             }
 
 
 
-            while ((_current.Left == null && _current.Right == null) || (_current.Left == _prevNode && _current.Right == null) || (_current.Right == _prevNode))
+            while (_prevNode != null && ((_current.Left == null && _current.Right == null) || (_current.Left == _prevNode && _current.Right == null) || (_current.Right == _prevNode)))
             {
-                if (_current.Parent == null && _prevNode != _current)
+                if (_current.Parent == null)
                 {
                     _current = null;
+
                     return false;
                 }
+
                 _depth--;
                 _prevNode = _current;
                 _current = _current.Parent!;
                 if (_prevNode == _current.Left)
                 {
+
                     return true;
                 }
             }
@@ -592,19 +614,27 @@ public abstract class BinarySearchTreeBase<TKey, TValue, TNode>(IComparer<TKey>?
                 _prevNode = _current;
                 _current = _current.Left;
             }
+
             return true;
         }
 
         public bool MovePreOrder()
         {
+
             if (_current == null)
             {
                 _current = this._root;
                 _depth++;
+                if (_current.Left == null && _current.Right == null)
+                {
+                    _prevNode = _current;
+                }
+
                 return true;
             }
 
-            while ((_current.Left == null && _current.Right == null) || ((_current.Left == _prevNode) && (_current.Right == null)) || (_current.Right == _prevNode))
+
+            while (_prevNode != null && ((_current.Left == null && _current.Right == null) || ((_current.Left == _prevNode) && (_current.Right == null)) || (_current.Right == _prevNode)))
             {
                 if (_current.Parent == null)
                 {
@@ -616,7 +646,7 @@ public abstract class BinarySearchTreeBase<TKey, TValue, TNode>(IComparer<TKey>?
                 _current = _current.Parent;
             }
 
-            if ((_current.Left != null && _current.Parent == _prevNode) || _prevNode == null)
+            if (_current.Left != null && (_current.Parent == _prevNode || _prevNode == null))
             {
                 _prevNode = _current;
                 _current = _current.Left;
@@ -664,7 +694,7 @@ public abstract class BinarySearchTreeBase<TKey, TValue, TNode>(IComparer<TKey>?
     {
         if (array.Length - arrayIndex < Count)
         {
-            throw new ArgumentException("Not enough capacity");
+            throw new ArgumentException("Not enough size");
         }
 
         foreach (TreeEntry<TKey, TValue> item in InOrder())

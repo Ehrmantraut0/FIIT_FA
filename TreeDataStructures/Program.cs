@@ -1,14 +1,4 @@
-﻿using System;
-using System.Linq;
-using TreeDataStructures.Core;
-using TreeDataStructures.Implementations.BST;
-
-namespace TreeTestDebug
+﻿void main()
 {
-    class Program
-    {
-        static void Main()
-        {
-        }
-    }
+    return;
 }
