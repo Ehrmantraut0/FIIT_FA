@@ -122,7 +122,6 @@ public abstract class GenericTreeTests<TTree> where TTree : ITree<int, string>, 
         //  / \    /  \
         // 20 40  60  80
         int[] keys = new[] { 50, 30, 70, 20, 40, 60, 80 };
-<<<<<<< HEAD
         foreach (var k in keys) Tree.Add(k, k.ToString());
         
         // Удаление листа
@@ -141,85 +140,11 @@ public abstract class GenericTreeTests<TTree> where TTree : ITree<int, string>, 
         
         // Проверка, что дерево осталось валидным BST
         List<int> remaining = Tree.InOrder().Select(x => x.Key).ToList();
-=======
-        foreach (var k in keys) _tree.Add(k, k.ToString());
-
-        // 1. Удаление листа
-        Assert.That(_tree.Remove(20), Is.True);
-        Assert.That(_tree.ContainsKey(20), Is.False);
-
-        //// 2. Удаление узла с одним ребенком (если бы мы удалили 30 после 20)
-        Assert.That(_tree.Remove(30), Is.True);
-        Assert.That(_tree.ContainsKey(30), Is.False);
-
-        //// 3. Удаление корня (узла с двумя детьми)
-        Assert.That(_tree.Remove(50), Is.True);
-        Assert.That(_tree.ContainsKey(50), Is.False);
-
-        Assert.That(_tree.Count, Is.EqualTo(4));
-
-        //// Проверка, что дерево осталось валидным BST
-        List<int> remaining = _tree.InOrder().Select(x => x.Key).ToList();
->>>>>>> 5f2a361 (Splay is ready)
         Assert.That(remaining, Is.Ordered);
     }
 
     #endregion
-<<<<<<< HEAD
-    
-=======
 
-    #region Обходы (Traversals)
-
-    /// <summary>
-    /// Тест проверяет классические порядки обхода.
-    /// Для BST:
-    /// Root=10, Left=5, Right=15
-    /// InOrder: 5, 10, 15
-    /// PreOrder: 10, 5, 15
-    /// PostOrder: 5, 15, 10
-    /// </summary>
-    [Test]
-    public void Test_Traversals_Order()
-    {
-        _tree.Add(10, "Root");
-        _tree.Add(5, "Left");
-        _tree.Add(15, "Right");
-        
-        int[] inOrder = _tree.InOrder().Select(x => x.Key).ToArray();
-        int[] preOrder = _tree.PreOrder().Select(x => x.Key).ToArray();
-        int[] postOrder = _tree.PostOrder().Select(x => x.Key).ToArray();
-        
-        Assert.Multiple(() =>
-        {
-            Assert.That(inOrder, Is.EqualTo(new[] { 5, 10, 15 }), "InOrder failed");
-            Assert.That(preOrder, Is.EqualTo(new[] { 10, 5, 15 }), "PreOrder failed");
-            Assert.That(postOrder, Is.EqualTo(new[] { 5, 15, 10 }), "PostOrder failed");
-        });
-    }
-    
-    [Test]
-    public void Test_Reverse_Traversals()
-    {
-        _tree.Add(10, "Root");
-        _tree.Add(5, "Left");
-        _tree.Add(15, "Right");
-        
-        int[] inOrderRev = _tree.InOrderReverse().Select(x => x.Key).ToArray();
-        int[] preOrderRev = _tree.PreOrderReverse().Select(x => x.Key).ToArray();
-        int[] postOrderRev = _tree.PostOrderReverse().Select(x => x.Key).ToArray();
-        
-        Assert.Multiple(() =>
-        {
-            Assert.That(inOrderRev, Is.EqualTo(new[] { 15, 10, 5 }), "InOrderReverse failed");
-            Assert.That(preOrderRev, Is.EqualTo(new[] { 15, 5, 10 }), "PreOrderReverse failed");
-            Assert.That(postOrderRev, Is.EqualTo(new[] { 10, 15, 5 }), "PostOrderReverse failed");
-        });
-    }
-    
-    #endregion
->>>>>>> 5f2a361 (Splay is ready)
-    
     [Test]
     public void Test_RandomData_Consistency()
     {
