@@ -1,4 +1,5 @@
-﻿using System.Net.NetworkInformation;
+﻿using System.Net;
+using System.Net.NetworkInformation;
 using System.Security;
 using TreeDataStructures.Core;
 using TreeDataStructures.Implementations.BST;
@@ -11,7 +12,17 @@ public class AvlTree<TKey, TValue> : BinarySearchTreeBase<TKey, TValue, AvlNode<
     protected override AvlNode<TKey, TValue> CreateNode(TKey key, TValue value)
         => new(key, value);
 
-    protected override void OnNodeRemoved(AvlNode<TKey, TValue>? parent, AvlNode<TKey, TValue>? child) => OnNodeAdded(parent!);
+    protected override void OnNodeRemoved(AvlNode<TKey, TValue>? parent, AvlNode<TKey, TValue>? child)
+    {
+        if (child != null)
+        {
+            OnNodeAdded(child);
+        }
+        else
+        {
+            OnNodeAdded(parent!.Parent!);
+        }
+    }
 
 
     protected override void OnNodeAdded(AvlNode<TKey, TValue> current)

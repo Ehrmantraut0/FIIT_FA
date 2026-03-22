@@ -109,47 +109,29 @@ public abstract class BinarySearchTreeBase<TKey, TValue, TNode>(IComparer<TKey>?
             return;
         }
 
-        TNode balancingStart;
-        if (node.Left == null && node.Right != null)
+        TNode deletedNode;
+        TNode? replacement;
+        if (node.Left == null || node.Right == null)
         {
-            this.Transplant(node, node.Right);
-            balancingStart = node.Right;
-        }
-        else if (node.Right == null && node.Left != null)
-        {
-            this.Transplant(node, node.Left);
-            balancingStart = node.Left;
-        }
-        else if (node.Left == null && node.Right == null)
-        {
-            balancingStart = node.Parent!;
-            this.Transplant(node, null);
+            deletedNode = node;
+            replacement = node?.Right ?? node?.Left;
         }
         else
         {
-            TNode minRight = node.Right!;
+            TNode minRight = node.Right;
             while (minRight.Left != null)
             {
                 minRight = minRight.Left;
             }
-
-            if (minRight.Parent != node)
-            {
-
-                this.Transplant(minRight, minRight.Right);
-                minRight.Right = node.Right;
-                node.Right!.Parent = minRight;
-            }
-
-            balancingStart = minRight.Parent!;
-            this.Transplant(node, minRight);
-
-            minRight.Left = node.Left;
-            minRight.Left!.Parent = minRight;
+            deletedNode = minRight;
+            replacement = minRight.Right;
         }
+        node.Value = deletedNode.Value;
+        node.Key = deletedNode.Key;
 
-        this.OnNodeRemoved(balancingStart, null);
+        Transplant(deletedNode, replacement);
 
+        this.OnNodeRemoved(deletedNode, replacement);
     }
 
     public virtual bool ContainsKey(TKey key) => FindNode(key) != null;
